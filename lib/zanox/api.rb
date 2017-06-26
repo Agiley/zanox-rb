@@ -44,8 +44,38 @@ module Zanox
       end
 
       def request(method, options = {}, headers = {})
+        set_auth_headers(method, options, headers, 'GET')
+
+        logger.info "Params:  #{options.inspect}"
+        logger.info "Headers: #{headers.inspect}"
+        
+        response = get(api_url(method), query: options, headers: headers)
+        Response.new(response, [method, options, headers])
+      end
+      
+      def create(method, data = {}, options = {}, headers = {})
+        set_auth_headers(method, options, headers, 'POST')
+        
+        headers.merge!({
+          'Content-Type' => 'application/json',
+          'Accept'       => 'application/json'
+        })
+        
+        logger.info "Data:    #{data.inspect}"
+        logger.info "Params:  #{options.inspect}"
+        logger.info "Headers: #{headers.inspect}"
+        
+        response = post(api_url(method), body: data, query: options, headers: headers)
+        Response.new(response, [method, options, headers])
+      end
+      
+      def api_url(method)
+        "/json/2011-03-01/#{method}"
+      end
+      
+      def set_auth_headers(method, options, headers, verb = 'GET')
         if Session.secret_key
-          timestamp, nonce, signature = Session.fingerprint_of(method, options)
+          timestamp, nonce, signature = Session.fingerprint_of(method, options, verb)
           headers.merge!({
             'Authorization' => "ZXWS #{Session.connect_id}:#{signature}",
             'Date'          => timestamp,
@@ -54,11 +84,8 @@ module Zanox
         else
           options.merge!({ 'connectId' => Session.connect_id })
         end
-
-        logger.info "Params:  #{options.inspect}"
-        logger.info "Headers: #{headers.inspect}"
-        response = get("/json/2011-03-01/#{method}", query: options, headers: headers)
-        Response.new(response, [method, options, headers]) end
+      end
+      
     end
   end
 end

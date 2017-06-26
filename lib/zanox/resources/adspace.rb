@@ -59,7 +59,7 @@ module Zanox
             name: category[1],
           }
         end
-      end
+      end if data['categories'] && data['categories'].any?
       @language      = data['language']
       @check_number  = data['checkNumber']
     end
